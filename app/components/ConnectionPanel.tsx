@@ -203,7 +203,7 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
                   onClick={() => handleConnect(key)}
                   className={`flex-1 flex items-center justify-center gap-3 py-3 px-6 rounded-2xl font-medium transition-all duration-200 shadow-md bg-white/80 hover:bg-white/90 border border-white/40 text-[#0db2ff] hover:scale-[1.03] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#0db2ff]/30 ${
                     status[key] === 'ACTIVE'
-                      ? 'bg-gradient-to-r from-[#a6e1fa] to-[#0db2ff] text-white shadow-lg hover:from-[#b8e6ff] hover:to-[#0db2ff]'
+                      ? 'bg-gradient-to-r from-green-400 to-green-600 text-white shadow-lg hover:from-green-300 hover:to-green-700'
                       : status[key] === 'INITIALIZING'
                       ? 'bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-800 shadow-lg'
                       : status[key] === 'FAILED'
@@ -225,7 +225,7 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
                       `Connect ${name}`}
                   </span>
                   {status[key] === 'ACTIVE' && (
-                    <div className="w-2 h-2 bg-white/80 rounded-full animate-pulse ml-2" />
+                    <div className="w-2 h-2 bg-green-200 rounded-full animate-pulse ml-2" />
                   )}
                 </button>
                 <button
