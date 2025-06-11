@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import ConnectionPanel from './components/ConnectionPanel'
 
 export default function Home() {
   const [loading, setLoading] = useState(false)
@@ -44,6 +45,9 @@ export default function Home() {
             className="mb-6 w-full max-w-md rounded-xl px-5 py-3 text-xl bg-white border border-[#0db2ff] focus:outline-none focus:ring-2 focus:ring-[#0db2ff] transition shadow placeholder:text-[#0db2ff]/80 placeholder:font-medium text-[#0db2ff]/80"
             autoComplete="off"
           />
+          
+          <ConnectionPanel apiKey={apiKey} />
+          
           <button
             onClick={handleClick}
             className={`transition-all duration-200 bg-[#0db2ff] text-white text-2xl font-medium rounded-2xl py-4 px-14 shadow-xl hover:scale-105 hover:bg-[#009ee0] focus:outline-none focus:ring-4 focus:ring-[#a6e1fa]/40 active:scale-95 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
