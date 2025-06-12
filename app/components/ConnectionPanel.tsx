@@ -38,6 +38,9 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
     setPromptRefresh(prev => ({ ...prev, [service]: true }))
     
     try {
+      console.log(`Starting ${service} connection...`)
+      const fetchStart = Date.now()
+      
       const response = await fetch(`/api/connection/${service}`, {
         method: 'POST',
         headers: {
@@ -45,21 +48,32 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
         },
         body: JSON.stringify({ apiKey })
       })
+      
+      const fetchTime = Date.now() - fetchStart
+      console.log(`${service} API call took ${fetchTime}ms`)
+      
       const data = await response.json()
       
       if (data.redirectUrl) {
-        window.open(data.redirectUrl, '_blank')
+        console.log(`Opening ${service} OAuth window...`)
+        const popup = window.open(data.redirectUrl, '_blank', 'width=600,height=700,scrollbars=yes,resizable=yes')
+        
+        if (popup) {
+          popup.focus()
+        }
       } else if (data.error) {
+        console.error(`${service} connection error:`, data.error)
+        setStatus(prev => ({ ...prev, [service]: 'FAILED' }))
         alert(data.error)
       }
     } catch (error) {
       console.error(`Error connecting to ${service}:`, error)
+      setStatus(prev => ({ ...prev, [service]: 'FAILED' }))
       alert(`Failed to connect to ${service}`)
     }
   }
 
   const handleCheckStatus = async (service: keyof ConnectionStatus) => {
-    if (service === 'apollo') return
     if (!apiKey) {
       alert('Please enter your Composio API key first')
       return
@@ -69,9 +83,23 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
     setStatus(prev => ({ ...prev, [service]: 'checking' }))
     
     try {
-      const response = await fetch(`/api/connection/${service}/status?apiKey=${encodeURIComponent(apiKey)}`)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 8000)
+      
+      const response = await fetch(`/api/connection/${service}/status?apiKey=${encodeURIComponent(apiKey)}`, {
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      
       const data = await response.json()
       console.log(`${service} status response:`, data)
+      
+      if (data.error) {
+        console.error(`${service} status error:`, data.error)
+        setStatus(prev => ({ ...prev, [service]: 'FAILED' }))
+        return
+      }
       
       const newStatus = data.status || (data.connected ? 'ACTIVE' : 'DISCONNECTED')
       console.log(`Setting ${service} status to:`, newStatus)
@@ -81,8 +109,13 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
         [service]: newStatus
       }))
     } catch (error) {
-      console.error(`Error checking ${service} status:`, error)
-      setStatus(prev => ({ ...prev, [service]: 'DISCONNECTED' }))
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`${service} status check timed out`)
+        setStatus(prev => ({ ...prev, [service]: 'FAILED' }))
+      } else {
+        console.error(`Error checking ${service} status:`, error)
+        setStatus(prev => ({ ...prev, [service]: 'DISCONNECTED' }))
+      }
     }
   }
 
@@ -206,6 +239,8 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
                       ? 'bg-gradient-to-r from-green-400 to-green-600 text-white shadow-lg hover:from-green-300 hover:to-green-700'
                       : status[key] === 'INITIALIZING'
                       ? 'bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-800 shadow-lg'
+                      : status[key] === 'checking'
+                      ? 'bg-gradient-to-r from-blue-100 to-blue-300 text-blue-800 shadow-lg'
                       : status[key] === 'FAILED'
                       ? 'bg-gradient-to-r from-red-100 to-red-400 text-red-800 shadow-lg'
                       : ''
@@ -221,6 +256,12 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
                           <svg className="w-4 h-4 animate-spin text-yellow-600" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
                         </>
                       ) :
+                      status[key] === 'checking' ? (
+                        <>
+                          Refreshing...
+                          <svg className="w-4 h-4 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                        </>
+                      ) :
                       status[key] === 'FAILED' ? `${name} Failed` :
                       `Connect ${name}`}
                   </span>
@@ -230,7 +271,7 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
                 </button>
                 <button
                   onClick={() => handleCheckStatus(key)}
-                  disabled={status[key] === 'checking' || key === 'apollo'}
+                  disabled={status[key] === 'checking'}
                   className="p-3 rounded-2xl transition-all duration-200 bg-white/70 hover:bg-white/90 border border-white/40 text-[#0db2ff] shadow-md hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#0db2ff]/30"
                 >
                   <div className={status[key] === 'checking' ? 'animate-spin' : ''}>

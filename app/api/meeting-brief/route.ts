@@ -12,16 +12,20 @@ export async function POST(req: NextRequest) {
     provider: new VercelProvider(),
   })
   const userMessage = `
-  Fetch the latest 5 meeting details from my google calendar for the id: karan@composio.dev. 
+  Get the current date and time, based on that return the latest meeting
+  Fetch the latest 5 meeting details from my google calendar for my id 
   Research the company and the person I am meeting with.
   Generate a meeting brief report for the meeting.
   Then you have to create a contact in hubspot with all the relevant details.
   Non negotiable details: firstname, lastname, company, email, fill any extra details that you think are relevant.
   The meeting brief report should be in the following format:
   - Meeting details
-  - Person research (100 words) with apollo and search tools
-  - Company research (100 words) with search tools
+  - Person research with apollo and search tools (Ensure the person is the same as the meeting person, also include topics that can be discussed with the person)
+  - Company research with search tools (Ensure the company is the same as the meeting company)
  You have full permission to use the tools and complete all the tasks.
+ Pass the retrieved properties of the contact to relevant fields in Hubspot
+ 
+ 
   `
   const tools = await composio.tools.get('default', {
     tools: [

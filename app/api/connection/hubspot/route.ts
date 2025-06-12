@@ -13,20 +13,30 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    console.log('Creating HubSpot connection...');
+    const startTime = Date.now();
+    
     const composio = new Composio({ apiKey });
     
     const connectionRequest = await composio.toolkits.authorize('default', 'hubspot');
     
+    const timeTaken = Date.now() - startTime;
+    console.log(`HubSpot connection created in ${timeTaken}ms`);
+    
     storeConnectionRequest(`hubspot-${apiKey}`, connectionRequest);
+    
+    if (!connectionRequest.redirectUrl) {
+      throw new Error('No redirect URL received from Composio');
+    }
     
     return NextResponse.json({
       redirectUrl: connectionRequest.redirectUrl
     });
   } catch (error) {
     console.error('Error initiating HubSpot connection:', error);
-    return NextResponse.json(
-      { error: 'Failed to initiate HubSpot connection' },
-      { status: 500 }
-    );
+          return NextResponse.json(
+        { error: `Failed to initiate HubSpot connection: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        { status: 500 }
+      );
   }
 } 

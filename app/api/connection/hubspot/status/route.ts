@@ -42,7 +42,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error checking HubSpot connection status:', error);
     return NextResponse.json(
-      { connected: false },
+      { 
+        connected: false,
+        status: 'DISCONNECTED',
+        error: 'Failed to check connection status'
+      },
       { status: 200 }
     );
   }
