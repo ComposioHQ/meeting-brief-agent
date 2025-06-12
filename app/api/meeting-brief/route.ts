@@ -12,8 +12,10 @@ export async function POST(req: NextRequest) {
     provider: new VercelProvider(),
   })
   const userMessage = `
-  Get the current date and time, based on that return the latest meeting
-  Fetch the latest 5 meeting details from my google calendar for my id 
+  Fetch events by Google Calendar, here's the parameters to pass:
+  timeMin	Current timestamp
+  order_by	"startTime"	  
+  max_results	1
   Research the company and the person I am meeting with.
   Generate a meeting brief report for the meeting.
   Then you have to create a contact in hubspot with all the relevant details.
