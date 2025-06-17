@@ -124,16 +124,6 @@ export default function ConnectionPanel({ apiKey }: ConnectionPanelProps) {
     { key: 'googlecalendar', name: 'Google Calendar' }
   ] as const
 
-  useEffect(() => {
-    if (apiKey) {
-      fetch('/api/connection/apollo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey })
-      })
-    }
-  }, [apiKey])
-
   return (
     <div className="w-full max-w-md mt-6">
       <div className="w-full border-b border-white/40 mb-6" />

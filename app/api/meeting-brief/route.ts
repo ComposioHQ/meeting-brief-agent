@@ -9,58 +9,92 @@ export async function POST(req: NextRequest) {
   const { apiKey } = body
   const ip = req.headers.get('x-forwarded-for') || 'unknown';
   const userId = `user-${ip}`;
-  const composio = new Composio({
+
+  if (!apiKey) {
+    return NextResponse.json({ error: 'Composio API key is required.' }, { status: 400 });
+  }
+
+  // 1. Calendar Agent (frontend API key)
+  const composioCalendar = new Composio({
     apiKey,
     provider: new VercelProvider(),
   })
-  const userMessage = `
-  You are a Meeting Brief Agent that researches the person and company I am meeting with.
-  You have to generate a meeting brief report for the meeting.
-  You have the following tools at your disposal:
-  - Google Calendar: Fetch events by Google Calendar
-  - Apollo: Search for people
-  - Composio Search: Search for companies
-  - Google Docs: Create and update documents
-
-  You have to use the tools to generate the meeting brief report.
-  Search the internet for the person and the company together. Gather as much info and then use that info to search on Apollo and get verified information.
-  Fetch events by Google Calendar, here's the parameters to pass:
-  timeMin	Current timestamp
-  order_by	"startTime"	  
-  max_results	1
-
-  `
-  const tools = await composio.tools.get(userId, {
+  const calendarTools = await composioCalendar.tools.get(userId, {
     tools: [
       'GOOGLECALENDAR_GET_CALENDAR',
       'GOOGLECALENDAR_GET_CURRENT_DATE_TIME',
       'GOOGLECALENDAR_FIND_EVENT',
-      'COMPOSIO_SEARCH_TAVILY_SEARCH',
       'GOOGLECALENDAR_FIND_FREE_SLOTS',
-      'APOLLO_PEOPLE_SEARCH',
-      'GOOGLEDOCS_CREATE_DOCUMENT_MARKDOWN',
-      'GOOGLEDOCS_UPDATE_DOCUMENT_MARKDOWN'
+      'GOOGLECALENDAR_LIST_CALENDARS'
     ]
-  }, {
-    beforeExecute: async (toolSlug: string, toolkitSlug: string, toolExecuteParams) => {
-      console.log(`🔄 Executing tool: ${toolSlug} from toolkit: ${toolkitSlug}`);
-      console.log(JSON.stringify(toolExecuteParams, null, 2))
-      return toolExecuteParams
-    }
   })
-  const messages: any[] = [
-    { role: 'user', content: userMessage },
+  const calendarPrompt = `You are a calendar agent. Fetch all relevant meeting and event details from Google Calendar for the user. Output all information you can get about the next meeting. Use List calendars to find the account owner's email and ensure that the account owner is not included in the meeting participants or researched. Output all meeting details except for the account owner.
+  When finding events, use the following parameters:
+  timeMin: Current timestamp
+  order_by: "startTime"	  
+  max_results: 1
+  `
+  const calendarMessages = [
+    { role: 'user' as const, content: calendarPrompt },
   ]
-  async function chatCompletion() {
-    const { text } = await generateText({
-      model: openai('gpt-4.1'),
-      tools: tools,
-      messages,
-      maxSteps: 50,
+  const calendarResult = await generateText({
+    model: openai('gpt-4.1'),
+    tools: calendarTools,
+    messages: calendarMessages,
+    maxSteps: 20,
+  })
 
-    })
-    return text
+  // 2. Research Agent (env API key)
+  const composioResearch = new Composio({
+    apiKey: process.env.COMPOSIO_API_KEY!,
+    provider: new VercelProvider(),
+  })
+  const researchTools = await composioResearch.tools.get('default', {
+    tools: [
+      'APOLLO_PEOPLE_SEARCH',
+      'COMPOSIO_SEARCH_TAVILY_SEARCH',
+    ]
+  })
+  const researchPrompt = `You are a Meeting Brief Agent that researches the person and company the user is meeting with. Given the following meeting details, research the person and company using Apollo and search tools.\n\nInstructions:\n- Do not research the account owner.\n- Use the meeting details to identify the person and company.\n- Search the internet for the person and the company together. Gather as much info and then use that info to search on Apollo and get verified information.\n- Output should be detailed, accurate, and relevant.\n\nMeeting details:\n${calendarResult.text}`
+  const researchMessages = [
+    { role: 'user' as const, content: researchPrompt },
+  ]
+  const researchResult = await generateText({
+    model: openai('gpt-4.1'),
+    tools: researchTools,
+    messages: researchMessages,
+    maxSteps: 30,
+  })
+
+  if (!process.env.COMPOSIO_API_KEY) {
+    return NextResponse.json({ error: 'Composio API key for research agent is not set in environment variables.' }, { status: 500 });
   }
-  const report = await chatCompletion()
-  return NextResponse.json({ report })
+
+  // 3. Google Docs Agent (frontend API key)
+  const composioDocs = new Composio({
+    apiKey,
+    provider: new VercelProvider(),
+  })
+  const docsTools = await composioDocs.tools.get(userId, {
+    tools: [
+      'GOOGLEDOCS_CREATE_DOCUMENT_MARKDOWN',
+      'GOOGLEDOCS_UPDATE_DOCUMENT_MARKDOWN',
+    ]
+  })
+  const docsPrompt = `You are a documentation agent. Take the following research and write a detailed meeting brief in markdown format. Save it in a Google Doc.\n\nResearch:\n${researchResult.text}`
+  const docsMessages = [
+    { role: 'user' as const, content: docsPrompt },
+  ]
+  const docsResult = await generateText({
+    model: openai('gpt-4.1'),
+    tools: docsTools,
+    messages: docsMessages,
+    maxSteps: 20,
+  })
+
+  return NextResponse.json({
+    calendar: calendarResult.text,
+    research: researchResult.text,
+    report: docsResult.text,
+  })
 } 
