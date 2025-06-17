@@ -14,10 +14,13 @@ export async function GET(request: NextRequest) {
       );
     }
     
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const userId = `user-${ip}`;
     const composio = new Composio({ apiKey });
 
     const connectedAccounts = await composio.connectedAccounts.list({
         toolkitSlugs: ['googlecalendar'],
+        userIds: [userId],
       });
 
     console.log('Google Calendar connected accounts:', connectedAccounts);

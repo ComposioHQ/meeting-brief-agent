@@ -13,17 +13,20 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log('Creating HubSpot connection...');
+    console.log('Creating Google Docs connection...');
     const startTime = Date.now();
     
     const composio = new Composio({ apiKey });
     
-    const connectionRequest = await composio.toolkits.authorize('default', 'hubspot');
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const userId = `user-${ip}`;
+    
+    const connectionRequest = await composio.toolkits.authorize(userId, 'googledocs');
     
     const timeTaken = Date.now() - startTime;
-    console.log(`HubSpot connection created in ${timeTaken}ms`);
+    console.log(`Google Docs connection created in ${timeTaken}ms`);
     
-    storeConnectionRequest(`hubspot-${apiKey}`, connectionRequest);
+    storeConnectionRequest(userId, connectionRequest);
     
     if (!connectionRequest.redirectUrl) {
       throw new Error('No redirect URL received from Composio');
@@ -33,9 +36,9 @@ export async function POST(request: NextRequest) {
       redirectUrl: connectionRequest.redirectUrl
     });
   } catch (error) {
-    console.error('Error initiating HubSpot connection:', error);
+    console.error('Error initiating Google Docs connection:', error);
           return NextResponse.json(
-        { error: `Failed to initiate HubSpot connection: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        { error: `Failed to initiate Google Docs connection: ${error instanceof Error ? error.message : 'Unknown error'}` },
         { status: 500 }
       );
   }

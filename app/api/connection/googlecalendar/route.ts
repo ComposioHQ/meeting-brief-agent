@@ -15,9 +15,12 @@ export async function POST(request: NextRequest) {
     
     const composio = new Composio({ apiKey });
     
-    const connectionRequest = await composio.toolkits.authorize('default', 'googlecalendar');
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const userId = `user-${ip}`;
     
-    storeConnectionRequest(`googlecalendar-${apiKey}`, connectionRequest);
+    const connectionRequest = await composio.toolkits.authorize(userId, 'googlecalendar');
+    
+    storeConnectionRequest(userId, connectionRequest);
     
     return NextResponse.json({
       redirectUrl: connectionRequest.redirectUrl

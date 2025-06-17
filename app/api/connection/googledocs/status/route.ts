@@ -13,13 +13,17 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
-        const composio = new Composio({ apiKey });
+
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const userId = `user-${ip}`;
+    const composio = new Composio({ apiKey });
 
     const connectedAccounts = await composio.connectedAccounts.list({
-        toolkitSlugs: ['apollo'],
+        toolkitSlugs: ['googledocs'],
+        userIds: [userId],
       });
 
-    console.log('Apollo connected accounts:', connectedAccounts);
+    console.log('Google Docs connected accounts:', connectedAccounts);
 
     if (!connectedAccounts.items || connectedAccounts.items.length === 0) {
       return NextResponse.json({
@@ -33,14 +37,14 @@ export async function GET(request: NextRequest) {
       return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
     });
 
-    console.log('Latest Apollo account:', latestAccount.id, 'Status:', latestAccount.status);
+    console.log('Latest Google Docs account:', latestAccount.id, 'Status:', latestAccount.status);
 
     return NextResponse.json({
       connected: latestAccount.status === 'ACTIVE',
       status: latestAccount.status
     });
   } catch (error) {
-    console.error('Error checking Apollo connection status:', error);
+    console.error('Error checking Google Docs connection status:', error);
     return NextResponse.json(
       { 
         connected: false,
