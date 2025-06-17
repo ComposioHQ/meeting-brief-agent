@@ -36,7 +36,7 @@ export default function Home() {
     <div className="min-h-screen flex items-center justify-center bg-[#fcf8f2] font-sans" style={{fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif'}}>
       <div className="w-full max-w-2xl flex flex-col items-center">
         <div className="bg-gradient-to-b from-[#0db2ff] to-[#6dd5fa] rounded-3xl shadow-2xl px-10 py-14 w-full flex flex-col items-center relative" style={{backdropFilter: 'blur(0px)'}}>
-          <h1 className="text-5xl font-semibold text-white mb-10 text-center tracking-tight drop-shadow-lg" style={{letterSpacing: '-0.02em'}}>Meeting Brief Agent, powered by Composio and Hubspot</h1>
+          <h1 className="text-5xl font-semibold text-white mb-10 text-center tracking-tight drop-shadow-lg" style={{letterSpacing: '-0.02em'}}>Meeting Brief Agent, powered by Composio</h1>
           <input
             type="password"
             value={apiKey}
